@@ -1,3 +1,5 @@
+import { getProductBySku } from "@/lib/api/products";
+import { getStock } from "@/lib/api/stock";
 import { findCatalogProduct } from "@/lib/cart/catalog";
 import { getDemoProductDetail } from "@/lib/demo-data";
 
@@ -38,6 +40,34 @@ export function resolveWishlistProduct(sku: string): WishlistProduct | null {
     currency: product.currency,
     image: product.image,
     category: product.category,
+    stockLeft,
+    stockState,
+  };
+}
+
+/**
+ * Resolve a saved SKU that is not part of the shipped demo catalog from the
+ * catalog and inventory APIs. Previously such items were silently dropped, so a
+ * real product saved from its page never showed up on /wishlist.
+ */
+export async function fetchWishlistProduct(sku: string): Promise<WishlistProduct | null> {
+  const [productResult, stockResult] = await Promise.allSettled([
+    getProductBySku(sku),
+    getStock(sku),
+  ]);
+  if (productResult.status !== "fulfilled") return null;
+  const product = productResult.value;
+  const known = stockResult.status === "fulfilled" ? stockResult.value.availableQuantity : null;
+  const stockLeft = product.status !== "ACTIVE" ? 0 : (known ?? Number.MAX_SAFE_INTEGER);
+  const stockState: WishlistStockState =
+    stockLeft <= 0 ? "out" : stockLeft <= LOW_STOCK_THRESHOLD ? "low" : "in";
+
+  return {
+    sku,
+    name: product.name,
+    price: Number(product.listPrice.amount),
+    currency: product.listPrice.currency,
+    image: product.images[0]?.url ?? "/images/product-placeholder.svg",
     stockLeft,
     stockState,
   };

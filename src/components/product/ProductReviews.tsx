@@ -90,8 +90,9 @@ export default function ProductReviews({ reviews }: { reviews: ProductReview[] }
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-gutter md:grid-cols-2">
-          {reviews.map((review) => (
-            <ReviewCard key={review.author} review={review} />
+          {reviews.map((review, index) => (
+            // Authors repeat ("Customer"), so the name cannot be the key.
+            <ReviewCard key={`${index}-${review.title}`} review={review} />
           ))}
         </div>
       )}
