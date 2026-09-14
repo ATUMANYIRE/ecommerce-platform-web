@@ -1,5 +1,6 @@
 import AddressesView from "@/components/account/AddressesView";
 import type { AddressesDemoState } from "@/components/account/AddressesView";
+import { pickDemoState } from "@/lib/demo-mode";
 
 const demoStates: AddressesDemoState[] = [
   "empty",
@@ -15,9 +16,7 @@ export default async function AccountAddressesPage({
   searchParams: Promise<{ state?: string }>;
 }) {
   const { state } = await searchParams;
-  const demoState = demoStates.includes(state as AddressesDemoState)
-    ? (state as AddressesDemoState)
-    : undefined;
+  const demoState = pickDemoState(state, demoStates);
 
   return (
     <AddressesView key={demoState ?? "default"} demoState={demoState} />

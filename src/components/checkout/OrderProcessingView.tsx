@@ -4,7 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import Icon from "@/components/ui/Icon";
+import { demoStatesEnabled } from "@/lib/demo-mode";
 import { formatAmount } from "@/lib/utils/currency";
+import { isUnoptimizedImage } from "@/lib/utils/image";
 import { vaseImage } from "@/lib/demo-data";
 
 export type OrderDemoState = "processing" | "success" | "failure" | "loading";
@@ -52,15 +54,21 @@ export default function OrderProcessingView({
   demoState,
 }: OrderProcessingViewProps) {
   const state = demoState ?? "processing";
-  const { clearCart } = useCart();
+  const { items: cartItems, clearCart } = useCart();
 
-  const confirmationTotal = confirmationItems.reduce(
+  // The summary shows what the shopper is actually buying; the design's sample
+  // lines are only a preview fallback in development.
+  const summaryItems: typeof confirmationItems =
+    cartItems.length > 0 ? cartItems : demoStatesEnabled ? confirmationItems : [];
+  const currency = summaryItems[0]?.currency ?? "USD";
+
+  const confirmationTotal = summaryItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0,
   );
   const orderId = `ATLAS-${
     10000 +
-    ((Math.round(confirmationTotal * 100) * 31 + confirmationItems.length * 1237) %
+    ((Math.round(confirmationTotal * 100) * 31 + summaryItems.length * 1237) %
       89999)
   }-B`;
 
@@ -117,7 +125,7 @@ export default function OrderProcessingView({
               Order Summary
             </h3>
             <div className="flex flex-col gap-md">
-              {confirmationItems.map((item) => (
+              {summaryItems.map((item) => (
                 <div
                   key={item.sku}
                   className="flex items-center justify-between"
@@ -128,6 +136,7 @@ export default function OrderProcessingView({
                         src={item.image}
                         alt={item.name}
                         fill
+                        unoptimized={isUnoptimizedImage(item.image)}
                         sizes="48px"
                         className="object-cover opacity-80"
                       />
@@ -151,11 +160,13 @@ export default function OrderProcessingView({
             <div className="flex items-center justify-between">
               <span className="font-body-lg text-body-lg text-muted">Total</span>
               <span className="font-title-lg text-title-lg text-on-surface">
-                {formatAmount(confirmationTotal, "USD")}
+                {formatAmount(confirmationTotal, currency)}
               </span>
             </div>
           </div>
 
+          {/* Preview switches for designers; never shown to shoppers in production. */}
+          {demoStatesEnabled && (
           <div className="mt-md flex gap-sm">
             <Link
               href="/checkout/confirmation?state=success"
@@ -176,6 +187,7 @@ export default function OrderProcessingView({
               Test Loading
             </Link>
           </div>
+          )}
         </div>
       )}
 
@@ -197,7 +209,7 @@ export default function OrderProcessingView({
           </div>
           <div className="mt-lg flex w-full max-w-2xl flex-col gap-md sm:flex-row">
             <Link
-              href="/"
+              href="/orders"
               className="flex-1 rounded bg-champagne px-6 py-3 font-label-md text-label-md uppercase tracking-widest text-obsidian transition-opacity hover:opacity-90"
             >
               View Order
@@ -210,12 +222,14 @@ export default function OrderProcessingView({
               Continue Shopping
             </Link>
           </div>
-          <Link
-            href="/checkout/confirmation"
-            className="mt-xl text-xs text-muted transition-colors hover:text-white"
-          >
-            Return to Processing View
-          </Link>
+          {demoStatesEnabled && (
+            <Link
+              href="/checkout/confirmation"
+              className="mt-xl text-xs text-muted transition-colors hover:text-white"
+            >
+              Return to Processing View
+            </Link>
+          )}
         </div>
       )}
 
@@ -246,12 +260,14 @@ export default function OrderProcessingView({
               Return to Cart
             </Link>
           </div>
-          <Link
-            href="/checkout/confirmation"
-            className="mt-xl text-xs text-muted transition-colors hover:text-white"
-          >
-            Return to Processing View
-          </Link>
+          {demoStatesEnabled && (
+            <Link
+              href="/checkout/confirmation"
+              className="mt-xl text-xs text-muted transition-colors hover:text-white"
+            >
+              Return to Processing View
+            </Link>
+          )}
         </div>
       )}
 
@@ -283,12 +299,14 @@ export default function OrderProcessingView({
               </div>
             </div>
           </div>
-          <Link
-            href="/checkout/confirmation"
-            className="mt-xl text-xs text-muted transition-colors hover:text-white"
-          >
-            Return to Processing View
-          </Link>
+          {demoStatesEnabled && (
+            <Link
+              href="/checkout/confirmation"
+              className="mt-xl text-xs text-muted transition-colors hover:text-white"
+            >
+              Return to Processing View
+            </Link>
+          )}
         </div>
       )}
     </main>
