@@ -2,8 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Icon from "@/components/ui/Icon";
 import type { IconName } from "@/components/ui/Icon";
+import { logout } from "@/lib/auth/session";
 import { cn } from "@/lib/utils/cn";
 
 export type AccountSection =
@@ -35,6 +37,14 @@ function navClass(active: boolean) {
  * hidden to keep the layout compact.
  */
 export default function AccountSidebar({ active }: { active: AccountSection }) {
+  const router = useRouter();
+
+  async function signOut() {
+    // Revokes the refresh token; previously this only linked to /signin and kept the session.
+    await logout();
+    router.push("/login");
+  }
+
   return (
     <aside className="w-full flex-shrink-0 md:mb-0 md:w-64">
       <div className="flex flex-col rounded-lg border border-muted/20 bg-surface p-lg md:sticky md:top-24">
@@ -80,13 +90,14 @@ export default function AccountSidebar({ active }: { active: AccountSection }) {
             <Icon name="settings" className="text-[20px]" />
             Account Settings
           </Link>
-          <Link
-            href="/signin"
-            className="flex w-full items-center gap-md rounded px-md py-sm font-label-md text-label-md text-error transition-colors hover:bg-error/10"
+          <button
+            type="button"
+            onClick={signOut}
+            className="flex w-full items-center gap-md rounded px-md py-sm text-left font-label-md text-label-md text-error transition-colors hover:bg-error/10"
           >
             <Icon name="logout" className="text-[20px]" />
             Sign Out
-          </Link>
+          </button>
         </nav>
       </div>
     </aside>

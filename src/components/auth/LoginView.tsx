@@ -6,9 +6,13 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import Icon from "@/components/ui/Icon";
+import { isApiError } from "@/lib/api/client";
+import { authErrorMessage, EMAIL_MAX_LENGTH, login, PASSWORD_MAX_LENGTH } from "@/lib/auth/session";
 import { cn } from "@/lib/utils/cn";
 
 export type LoginDemoState = "error" | "loading" | "success";
+
+const CREDENTIALS_ERROR = "Unable to sign in. Please check your credentials.";
 
 const marketingImage =
   "https://lh3.googleusercontent.com/aida/AEtjO1VyrZ1ksDPRCOtEL-sVDgE2nwTYj9rCDGBk0HHnKzwcflZw3avpL9D3cVTjn04uLvheNhzAeMVDPPADsSAMVZ4xKhQj2FGYOh6pzgqjvwiQ_TySXMbaeFkYox3iJoc9g6XxunoHHP7JCfMjUZZZtefHbK8BtuBxEBPNLXXSesLRtbxGaShCHgDAPXT88Fa8FLTthGnBxXqqMgbvUQ9CGUBuGwy2tmVrVwiLdd2WZgboCfBpXn-C4t6gAXSG";
@@ -29,11 +33,15 @@ function underlineClass(hasError: boolean) {
  */
 export default function LoginView({
   demoState,
+  next = "/account",
 }: {
   demoState: LoginDemoState | undefined;
+  /** Same-site path to open after signing in. */
+  next?: string;
 }) {
   const router = useRouter();
   const [phase, setPhase] = useState<AuthPhase>(demoState ?? "idle");
+  const [errorMessage, setErrorMessage] = useState(CREDENTIALS_ERROR);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -42,10 +50,20 @@ export default function LoginView({
     event.preventDefault();
     if (phase === "loading" || phase === "success") return;
     setPhase("loading");
-    await new Promise((resolve) => setTimeout(resolve, 1600));
-    setPhase("success");
-    await new Promise((resolve) => setTimeout(resolve, 1400));
-    router.push("/account");
+    try {
+      await login(email.trim(), password);
+      setPhase("success");
+      await new Promise((resolve) => setTimeout(resolve, 900));
+      router.push(next);
+    } catch (error) {
+      // 401 covers wrong password and unknown account alike; auth-service does not say which.
+      setErrorMessage(
+        isApiError(error) && (error.status === 401 || error.status === 400)
+          ? CREDENTIALS_ERROR
+          : authErrorMessage(error, CREDENTIALS_ERROR),
+      );
+      setPhase("error");
+    }
   };
 
   return (
@@ -108,8 +126,8 @@ export default function LoginView({
           {phase === "error" ? (
             <div className="mb-lg flex items-center gap-sm rounded border border-error/20 bg-error-container/10 p-md">
               <Icon name="error" className="text-[18px] text-error" />
-              <p className="font-body-md text-body-md text-error">
-                Unable to sign in. Please check your credentials.
+              <p role="alert" className="font-body-md text-body-md text-error">
+                {errorMessage}
               </p>
             </div>
           ) : null}
@@ -131,7 +149,9 @@ export default function LoginView({
               <input
                 id="login-email"
                 type="email"
+                autoComplete="email"
                 required
+                maxLength={EMAIL_MAX_LENGTH}
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 disabled={phase === "loading"}
@@ -151,7 +171,9 @@ export default function LoginView({
                 <input
                   id="login-password"
                   type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
                   required
+                  maxLength={PASSWORD_MAX_LENGTH}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   disabled={phase === "loading"}

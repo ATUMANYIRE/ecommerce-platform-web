@@ -5,7 +5,19 @@ import Link from "next/link";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import Icon from "@/components/ui/Icon";
+import { isApiError } from "@/lib/api/client";
+import {
+  authErrorMessage,
+  EMAIL_MAX_LENGTH,
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+  register,
+} from "@/lib/auth/session";
 import { cn } from "@/lib/utils/cn";
+
+/** Local-part@domain.tld; auth-service performs the authoritative check. */
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PASSWORD_LENGTH_MESSAGE = `Password must be ${PASSWORD_MIN_LENGTH}–${PASSWORD_MAX_LENGTH} characters.`;
 
 export type RegisterDemoState =
   | "error-validation"
@@ -103,24 +115,55 @@ export default function RegisterView({
   const [emailError, setEmailError] = useState(
     demoState === "error-validation",
   );
-  const [pwdError, setPwdError] = useState(demoState === "error-validation");
-  const registeredError = demoState === "error-registered";
+  const [pwdMessage, setPwdMessage] = useState<string | null>(
+    demoState === "error-validation" ? "Passwords do not match." : null,
+  );
+  const pwdError = pwdMessage !== null;
+  const [registeredError, setRegisteredError] = useState(
+    demoState === "error-registered",
+  );
+  const [formMessage, setFormMessage] = useState<string | null>(null);
 
-  const isDisabled = phase === "loading" || registeredError;
+  // The demo "email taken" preview locks the form; a real 409 only asks for another email.
+  const isDisabled = phase === "loading" || demoState === "error-registered";
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (phase === "loading" || phase === "success") return;
 
-    const badEmail = !email.includes("@");
+    const trimmedEmail = email.trim();
+    const badEmail = !EMAIL_PATTERN.test(trimmedEmail);
+    const badLength =
+      password.length < PASSWORD_MIN_LENGTH || password.length > PASSWORD_MAX_LENGTH;
     const badMatch = password !== confirmPassword;
     setEmailError(badEmail);
-    setPwdError(badMatch);
-    if (badEmail || badMatch) return;
+    setPwdMessage(
+      badLength ? PASSWORD_LENGTH_MESSAGE : badMatch ? "Passwords do not match." : null,
+    );
+    setRegisteredError(false);
+    setFormMessage(null);
+    if (badEmail || badLength || badMatch) return;
 
     setPhase("loading");
-    await new Promise((resolve) => setTimeout(resolve, 1800));
-    setPhase("success");
+    try {
+      await register(trimmedEmail, password);
+      setPhase("success");
+    } catch (error) {
+      setPhase("idle");
+      if (isApiError(error) && error.status === 409) {
+        setRegisteredError(true);
+      } else if (isApiError(error) && error.status === 400) {
+        setFormMessage(
+          error.errors?.length
+            ? "Please check your email and password and try again."
+            : error.detail ?? "Please check your email and password and try again.",
+        );
+      } else {
+        setFormMessage(
+          authErrorMessage(error, "We couldn't create your account. Please try again."),
+        );
+      }
+    }
   };
 
   return (
@@ -200,6 +243,15 @@ export default function RegisterView({
                 </div>
               ) : null}
 
+              {formMessage ? (
+                <div className="mb-lg flex items-start gap-md rounded-lg border border-error/20 bg-error-container/10 p-md">
+                  <Icon name="error" className="mt-xs text-[20px] text-error" />
+                  <p role="alert" className="font-body-md text-body-md text-error">
+                    {formMessage}
+                  </p>
+                </div>
+              ) : null}
+
               <form
                 onSubmit={handleSubmit}
                 className={cn(
@@ -219,8 +271,14 @@ export default function RegisterView({
                     type="email"
                     autoComplete="email"
                     required
+                    maxLength={EMAIL_MAX_LENGTH}
                     value={email}
-                    onChange={(event) => setEmail(event.target.value)}
+                    onChange={(event) => {
+                      setEmail(event.target.value);
+                      if (registeredError && demoState !== "error-registered") {
+                        setRegisteredError(false);
+                      }
+                    }}
                     disabled={isDisabled}
                     placeholder="Enter your email"
                     className={fieldInput(emailError)}
@@ -244,7 +302,8 @@ export default function RegisterView({
                       id="register-password"
                       type={showPassword ? "text" : "password"}
                       autoComplete="new-password"
-                      minLength={8}
+                      minLength={PASSWORD_MIN_LENGTH}
+                      maxLength={PASSWORD_MAX_LENGTH}
                       required
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
@@ -278,7 +337,8 @@ export default function RegisterView({
                       id="register-confirm"
                       type={showConfirm ? "text" : "password"}
                       autoComplete="new-password"
-                      minLength={8}
+                      minLength={PASSWORD_MIN_LENGTH}
+                      maxLength={PASSWORD_MAX_LENGTH}
                       required
                       value={confirmPassword}
                       onChange={(event) => setConfirmPassword(event.target.value)}
@@ -301,7 +361,7 @@ export default function RegisterView({
                 </div>
                 {pwdError ? (
                   <p className="-mt-md px-md font-label-sm text-label-sm text-error">
-                    Passwords do not match.
+                    {pwdMessage}
                   </p>
                 ) : null}
 
