@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import type { WishlistProduct } from "@/lib/wishlist/catalog";
+import { isUnoptimizedImage } from "@/lib/utils/image";
 
 type WishlistCardProps = {
   product: WishlistProduct;
@@ -76,6 +77,7 @@ export default function WishlistCard({ product }: WishlistCardProps) {
             src={product.image}
             alt={product.name}
             fill
+            unoptimized={isUnoptimizedImage(product.image)}
             sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
             className={`object-cover transition-transform duration-700 ease-out group-hover:scale-105 ${outOfStock ? "grayscale" : ""}`}
           />

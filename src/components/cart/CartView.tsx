@@ -108,7 +108,7 @@ export default function CartView({ demoState }: CartViewProps) {
           <div className="mt-sm">
             <p className="flex items-center gap-sm font-label-sm text-label-sm text-muted">
               <Icon name="info" className="text-[16px]" />
-              Need to change something? Add the item again with a new quantity.
+              Need to change something? Adjust the quantity or remove the item.
             </p>
           </div>
         </div>

@@ -4,7 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import Icon from "@/components/ui/Icon";
+import { MAX_QUANTITY_PER_LINE } from "@/lib/api/cart";
 import { formatAmount } from "@/lib/utils/currency";
+import { isUnoptimizedImage } from "@/lib/utils/image";
 
 /**
  * One row in the cart page. Converts to a product link, keeps a quantity
@@ -25,6 +27,7 @@ export default function CartItemRow({ sku }: { sku: string }) {
           src={item.image}
           alt={item.name}
           fill
+          unoptimized={isUnoptimizedImage(item.image)}
           sizes="144px"
           className="object-cover"
         />
@@ -72,7 +75,8 @@ export default function CartItemRow({ sku }: { sku: string }) {
               type="button"
               onClick={() => setQuantity(sku, item.quantity + 1)}
               aria-label="Increase quantity"
-              className="grid h-7 w-7 place-items-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
+              disabled={item.quantity >= MAX_QUANTITY_PER_LINE}
+              className="grid h-7 w-7 place-items-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Icon name="add" className="text-[16px]" />
             </button>
