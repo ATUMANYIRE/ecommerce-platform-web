@@ -277,7 +277,7 @@ export default async function ProductPage({
       <hr className="my-xl w-full max-w-max-width border-t border-outline-variant/20" />
 
       <div id="review">
-        <ProductReviews reviews={reviews} />
+        <ProductReviews reviews={reviews} sku={sku} />
       </div>
 
       <section className="mt-xxl flex flex-col gap-xl">

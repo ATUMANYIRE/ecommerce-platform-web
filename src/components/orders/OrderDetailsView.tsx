@@ -9,6 +9,10 @@ import Icon from "@/components/ui/Icon";
 import { formatAmount } from "@/lib/utils/currency";
 import { deliveredOrder, demoOrder } from "@/lib/orders/demo-order";
 import type { DemoOrder } from "@/lib/orders/demo-order";
+import { orderTotal } from "@/lib/orders/demo-order";
+import { useOrder } from "@/lib/orders/placed-orders";
+import { useHydrated } from "@/lib/utils/localStorageStore";
+import { isUnoptimizedImage } from "@/lib/utils/image";
 
 export type OrderDetailsDemoState =
   | "loading"
@@ -17,6 +21,7 @@ export type OrderDetailsDemoState =
   | "delivered";
 
 type OrderDetailsProps = {
+  orderId?: string;
   demoState?: OrderDetailsDemoState;
 };
 
@@ -133,11 +138,18 @@ function MobileTimeline({ order }: { order: DemoOrder }) {
  * delivered order variant.
  */
 export default function OrderDetailsView({
+  orderId,
   demoState,
 }: OrderDetailsProps) {
   const router = useRouter();
   const { addItem } = useCart();
-  const order = demoState === "delivered" ? deliveredOrder : demoOrder;
+  const found = useOrder(orderId ?? "");
+  const hydrated = useHydrated();
+  // Placed orders live in this browser, so an unknown id is only "not found" after hydration.
+  const order = demoState === "delivered" ? deliveredOrder : (found ?? demoOrder);
+  const state = demoState ?? (found || !orderId ? undefined : hydrated ? "notfound" : "loading");
+  const isDelivered = demoState === "delivered" || order.status === "Delivered";
+  const currency = order.currency ?? "USD";
   const [trackingLoading, setTrackingLoading] = useState(
     () => demoState === "tracking",
   );
@@ -159,7 +171,7 @@ export default function OrderDetailsView({
     router.push("/cart");
   }
 
-  if (demoState === "loading") {
+  if (state === "loading") {
     return (
       <div className="mx-auto w-full max-w-max-width px-margin-mobile py-xl md:px-margin-desktop">
         <div className="mb-lg flex items-center gap-2">
@@ -246,7 +258,7 @@ export default function OrderDetailsView({
     );
   }
 
-  if (demoState === "notfound") {
+  if (state === "notfound") {
     return (
       <div className="mx-auto w-full max-w-max-width px-margin-mobile py-xl md:px-margin-desktop">
         <div className="flex min-h-[400px] flex-col items-center justify-center rounded-lg border border-outline/10 bg-ink p-xxl text-center">
@@ -299,13 +311,13 @@ export default function OrderDetailsView({
       <div className="mb-xxl flex flex-col gap-md md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="mb-xs font-headline-lg-mobile text-headline-lg-mobile text-on-surface md:font-headline-lg md:text-headline-lg">
-            {demoState === "delivered" ? `Order #${order.id}` : "Order Details"}
+            {isDelivered ? `Order #${order.id}` : "Order Details"}
           </h1>
           <div className="flex flex-wrap items-center gap-md">
             <p className="font-body-md text-body-md text-muted">
               {order.placedLabel}
             </p>
-            {demoState === "delivered" && (
+            {isDelivered && (
               <div className="flex items-center gap-xs rounded border border-secondary/20 bg-secondary/10 px-2 py-1">
                 <Icon name="check_circle" className="text-[14px] text-secondary" />
                 <span className="font-label-sm text-label-sm uppercase tracking-wider text-secondary">
@@ -315,15 +327,15 @@ export default function OrderDetailsView({
             )}
           </div>
         </div>
-        {demoState === "delivered" ? (
+        {isDelivered ? (
           <div className="flex flex-wrap gap-sm">
-            <button
-              type="button"
+            <Link
+              href={`/orders/${encodeURIComponent(order.id)}/invoice`}
               className="flex items-center gap-xs rounded border border-surface-tint bg-transparent px-lg py-3 font-label-md text-label-md uppercase text-surface-tint transition-colors hover:bg-surface-tint/10"
             >
               <Icon name="receipt_long" className="text-[18px]" />
               Invoice
-            </button>
+            </Link>
             <button
               type="button"
               onClick={handleReorder}
@@ -383,6 +395,7 @@ export default function OrderDetailsView({
                       alt={item.name}
                       width={96}
                       height={96}
+                      unoptimized={isUnoptimizedImage(item.image)}
                       className="h-full w-full object-cover opacity-90 mix-blend-lighten"
                     />
                   </div>
@@ -491,26 +504,36 @@ export default function OrderDetailsView({
               <div className="flex items-center justify-between text-muted">
                 <span className="font-body-md text-body-md">Subtotal</span>
                 <span className="font-body-md text-body-md text-ivory">
-                  {formatAmount(order.subtotal, "USD")}
+                  {formatAmount(order.subtotal, currency)}
                 </span>
               </div>
+              {order.discount ? (
+                <div className="flex items-center justify-between text-muted">
+                  <span className="font-body-md text-body-md">
+                    Promo{order.promoCode ? ` (${order.promoCode})` : ""}
+                  </span>
+                  <span className="font-body-md text-body-md text-secondary">
+                    −{formatAmount(order.discount, currency)}
+                  </span>
+                </div>
+              ) : null}
               <div className="flex items-center justify-between text-muted">
                 <span className="font-body-md text-body-md">Shipping</span>
                 <span className="font-body-md text-body-md text-ivory">
-                  {formatAmount(order.shipping, "USD")}
+                  {formatAmount(order.shipping, currency)}
                 </span>
               </div>
               <div className="flex items-center justify-between text-muted">
                 <span className="font-body-md text-body-md">Tax</span>
                 <span className="font-body-md text-body-md text-ivory">
-                  {formatAmount(order.tax, "USD")}
+                  {formatAmount(order.tax, currency)}
                 </span>
               </div>
             </div>
             <div className="flex items-end justify-between">
               <span className="font-title-lg text-title-lg text-ivory">Total</span>
               <span className="font-display-md text-display-md leading-none text-ivory">
-                {formatAmount(order.subtotal + order.shipping + order.tax, "USD")}
+                {formatAmount(orderTotal(order), currency)}
               </span>
             </div>
           </section>
@@ -534,13 +557,13 @@ export default function OrderDetailsView({
 
           {/* Actions */}
           <section className="mt-md flex flex-col gap-md">
-            <button
-              type="button"
+            <Link
+              href={`/orders/${encodeURIComponent(order.id)}/invoice`}
               className="flex items-center justify-center gap-sm rounded border border-ivory/30 px-lg py-md font-label-md text-label-md uppercase tracking-wider text-ivory transition-colors hover:bg-surface-container-low"
             >
               <Icon name="receipt_long" className="text-[18px]" />
               View Invoice
-            </button>
+            </Link>
             <Link
               href="/"
               className="rounded px-lg py-md text-center font-label-md text-label-md uppercase tracking-wider text-ivory transition-colors hover:text-champagne"

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { AUTH_PANEL_IMAGE } from "@/components/auth/AuthShell";
 import Icon from "@/components/ui/Icon";
 import { isApiError } from "@/lib/api/client";
 import { authErrorMessage, EMAIL_MAX_LENGTH, login, PASSWORD_MAX_LENGTH } from "@/lib/auth/session";
@@ -14,8 +15,8 @@ export type LoginDemoState = "error" | "loading" | "success";
 
 const CREDENTIALS_ERROR = "Unable to sign in. Please check your credentials.";
 
-const marketingImage =
-  "https://lh3.googleusercontent.com/aida/AEtjO1VyrZ1ksDPRCOtEL-sVDgE2nwTYj9rCDGBk0HHnKzwcflZw3avpL9D3cVTjn04uLvheNhzAeMVDPPADsSAMVZ4xKhQj2FGYOh6pzgqjvwiQ_TySXMbaeFkYox3iJoc9g6XxunoHHP7JCfMjUZZZtefHbK8BtuBxEBPNLXXSesLRtbxGaShCHgDAPXT88Fa8FLTthGnBxXqqMgbvUQ9CGUBuGwy2tmVrVwiLdd2WZgboCfBpXn-C4t6gAXSG";
+// The previous hot-linked Google image URL returns 403, leaving the panel blank.
+const marketingImage = AUTH_PANEL_IMAGE;
 
 type AuthPhase = "idle" | "error" | "loading" | "success";
 
@@ -191,6 +192,14 @@ export default function LoginView({
                     className="text-[20px]"
                   />
                 </button>
+              </div>
+              <div className="flex justify-end pt-xs">
+                <Link
+                  href="/forgot-password"
+                  className="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant transition-colors hover:text-secondary"
+                >
+                  Forgot password?
+                </Link>
               </div>
             </div>
 

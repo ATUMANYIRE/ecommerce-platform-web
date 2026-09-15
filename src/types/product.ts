@@ -51,6 +51,8 @@ export type SearchItem = {
   attributes: Record<string, unknown>;
   createdAt: string;
   score: number;
+  /** Only set by the offline demo catalogue; search-service items carry no images. */
+  image?: string;
 };
 
 /**

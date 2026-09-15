@@ -42,6 +42,8 @@ const confirmationItems: {
 
 type OrderProcessingViewProps = {
   demoState?: OrderDemoState;
+  /** Id of the order placed by the demo payment step. */
+  placedOrderId?: string;
 };
 
 /**
@@ -52,6 +54,7 @@ type OrderProcessingViewProps = {
  */
 export default function OrderProcessingView({
   demoState,
+  placedOrderId,
 }: OrderProcessingViewProps) {
   const state = demoState ?? "processing";
   const { items: cartItems, clearCart } = useCart();
@@ -66,7 +69,7 @@ export default function OrderProcessingView({
     (sum, item) => sum + item.price * item.quantity,
     0,
   );
-  const orderId = `ATLAS-${
+  const orderId = placedOrderId ?? `ATLAS-${
     10000 +
     ((Math.round(confirmationTotal * 100) * 31 + summaryItems.length * 1237) %
       89999)
@@ -209,7 +212,7 @@ export default function OrderProcessingView({
           </div>
           <div className="mt-lg flex w-full max-w-2xl flex-col gap-md sm:flex-row">
             <Link
-              href="/orders"
+              href={placedOrderId ? `/orders/${encodeURIComponent(placedOrderId)}` : "/orders"}
               className="flex-1 rounded bg-champagne px-6 py-3 font-label-md text-label-md uppercase tracking-widest text-obsidian transition-opacity hover:opacity-90"
             >
               View Order

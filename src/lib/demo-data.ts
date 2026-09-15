@@ -195,8 +195,48 @@ export const productDetails: Record<string, ProductDetail> = {
   [toteDetail.sku]: toteDetail,
 };
 
+/** Category slug for every demo SKU (config/categories ids). */
+export const demoCategoryBySku: Record<string, string> = {
+  "WH-300": "electronics",
+  "LT-180": "fashion",
+  "MK-140": "electronics",
+  "RS-045": "beauty",
+  "MW-085": "fashion",
+  "PR-120": "sports",
+  "CV-065": "home",
+  "SC-035": "home",
+  "KP-185": "electronics",
+  "WU-240": "fashion",
+  "SR-160": "sports",
+  "TB-425": "fashion",
+};
+
 export function getDemoProductDetail(sku: string): ProductDetail | null {
-  return productDetails[sku] ?? null;
+  const detail = productDetails[sku];
+  if (detail) return detail;
+  // Home-page products have no rich copy; give them a page instead of an error.
+  const product = [...trendingProducts, ...mixedProducts].find((p) => p.sku === sku);
+  if (!product) return null;
+  return {
+    ...product,
+    categoryId: demoCategoryBySku[sku] ?? "",
+    stock: 20,
+    headline: defaultHeadline,
+    description: defaultDescription,
+    reviews: defaultReviews,
+  };
+}
+
+/** Every demo product once (home rails plus the detailed preview products). */
+export function allDemoProducts(): ProductDetail[] {
+  const skus = new Set([
+    ...trendingProducts.map((p) => p.sku),
+    ...mixedProducts.map((p) => p.sku),
+    ...Object.keys(productDetails),
+  ]);
+  return [...skus]
+    .map((sku) => getDemoProductDetail(sku))
+    .filter((p): p is ProductDetail => p !== null);
 }
 
 export const relatedProducts: ProductDetail[] = [

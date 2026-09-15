@@ -335,7 +335,11 @@ export default function CheckoutView({ demoState }: CheckoutViewProps) {
           </div>
           <button
             type="button"
-            onClick={() => router.push("/checkout/confirmation")}
+            onClick={() =>
+              router.push(
+                promoApplied ? `/checkout/payment?promo=${PROMO_CODE}` : "/checkout/payment",
+              )
+            }
             className="flex w-full items-center justify-center gap-sm rounded bg-secondary py-md font-title-lg text-title-lg text-surface-container-lowest shadow-[0_4px_14px_0_rgba(201,168,106,0.2)] transition-colors hover:bg-secondary-fixed"
           >
             Continue to Payment

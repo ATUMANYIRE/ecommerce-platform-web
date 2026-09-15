@@ -1,3 +1,6 @@
+import Link from "next/link";
+import NewsletterForm from "@/components/layout/NewsletterForm";
+
 const columns = [
   {
     heading: "Shop",
@@ -13,13 +16,16 @@ const columns = [
       { label: "FAQ", href: "/faq" },
       { label: "Shipping", href: "/shipping" },
       { label: "Returns", href: "/returns" },
+      { label: "Contact", href: "/contact" },
     ],
   },
   {
     heading: "Company",
     links: [
       { label: "About Us", href: "/about" },
-      { label: "Contact", href: "/contact" },
+      { label: "Sell on Atlas", href: "/become-seller" },
+      { label: "Seller Hub", href: "/seller" },
+      { label: "Admin Console", href: "/admin" },
     ],
   },
 ];
@@ -31,7 +37,7 @@ const legalLinks = [
 
 export default function Footer() {
   return (
-    <footer className="relative z-20 mt-auto w-full border-t border-white/5 bg-surface-container-lowest">
+    <footer className="relative z-20 mt-auto w-full print:hidden border-t border-white/5 bg-surface-container-lowest">
       <div className="mx-auto grid max-w-max-width grid-cols-2 gap-gutter px-margin-mobile py-xxl md:grid-cols-4 md:px-margin-desktop">
         {columns.map((col) => (
           <div key={col.heading} className="space-y-4">
@@ -41,12 +47,12 @@ export default function Footer() {
             <ul className="space-y-2">
               {col.links.map((link) => (
                 <li key={link.label}>
-                  <a
+                  <Link
                     href={link.href}
                     className="cursor-pointer font-body-md text-body-md text-on-surface-variant transition-colors hover:text-on-surface"
                   >
                     {link.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -60,28 +66,16 @@ export default function Footer() {
           <ul className="mb-4 space-y-2">
             {legalLinks.map((link) => (
               <li key={link.label}>
-                <a
+                <Link
                   href={link.href}
                   className="cursor-pointer font-body-md text-body-md text-on-surface-variant transition-colors hover:text-on-surface"
                 >
                   {link.label}
-                </a>
+                </Link>
               </li>
             ))}
           </ul>
-          <div className="flex flex-col gap-2">
-            <input
-              type="email"
-              placeholder="Enter your email"
-              className="rounded border border-white/10 bg-surface-container px-3 py-2 text-sm text-on-surface transition-colors placeholder:text-on-surface-variant focus:border-white focus:outline-none"
-            />
-            <button
-              type="button"
-              className="rounded bg-surface-container-highest py-2 text-sm text-on-surface transition-colors hover:bg-surface-variant"
-            >
-              Subscribe
-            </button>
-          </div>
+          <NewsletterForm />
         </div>
       </div>
 

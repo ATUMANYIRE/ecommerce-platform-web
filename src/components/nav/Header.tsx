@@ -9,6 +9,7 @@ import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import type { Suggestion } from "@/types/product";
 import Icon from "@/components/ui/Icon";
+import MobileMenu from "@/components/nav/MobileMenu";
 
 const demoProducts = [...trendingProducts, ...mixedProducts];
 
@@ -36,6 +37,7 @@ export default function Header() {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
@@ -78,7 +80,7 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-background shadow-sm shadow-background/50">
+    <header className="sticky top-0 z-50 w-full print:hidden border-b border-white/10 bg-background shadow-sm shadow-background/50">
       {/* Desktop */}
       <div className="mx-auto hidden w-full max-w-max-width items-center justify-between px-margin-desktop py-md md:flex">
         <div className="flex items-center gap-xl">
@@ -215,11 +217,18 @@ export default function Header() {
               </span>
             )}
           </Link>
-          <button type="button" aria-label="Menu" className="text-on-surface">
+          <button
+            type="button"
+            aria-label="Open menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen(true)}
+            className="text-on-surface"
+          >
             <Icon name="menu" />
           </button>
         </div>
       </div>
+      <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} links={navLinks} />
     </header>
   );
 }

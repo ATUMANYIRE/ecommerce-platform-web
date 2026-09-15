@@ -198,7 +198,7 @@ function RecentOrdersSection() {
           Recent Orders
         </h3>
         <Link
-          href="#"
+          href="/seller/orders"
           className="font-label-md text-label-md uppercase text-secondary transition-opacity hover:opacity-80"
         >
           View All
@@ -324,13 +324,13 @@ function ActionRequired() {
                 </p>
               </div>
             </div>
-            <button
-              type="button"
+            <Link
+              href="/seller/inventory"
               className="p-sm text-on-surface-variant transition-colors hover:text-secondary"
               aria-label={`Restock ${alert.name}`}
             >
               <Icon name="add_shopping_cart" />
-            </button>
+            </Link>
           </li>
         ))}
       </ul>
@@ -349,12 +349,12 @@ function TopProducts() {
         <h3 className="font-title-lg text-title-lg text-on-surface">
           Top Products
         </h3>
-        <button
-          type="button"
+        <Link
+          href="/seller/products"
           className="font-label-md text-label-md uppercase text-on-surface-variant transition-colors hover:text-secondary"
         >
           View Catalog
-        </button>
+        </Link>
       </div>
       <div className="space-y-md rounded border border-outline-variant/10 bg-ink p-md">
         {products.map((product, i) => (
@@ -571,13 +571,13 @@ function EmptyStoreState() {
       title="Your store is empty"
       copy="Add your first product to start selling to the Atlas community."
     >
-      <button
-        type="button"
+      <Link
+        href="/seller/products/new"
         className="flex items-center gap-sm rounded bg-champagne px-lg py-sm font-label-md text-label-md uppercase tracking-wider text-obsidian transition-colors duration-300 hover:bg-[#d6b77c] focus:ring-2 focus:ring-champagne focus:ring-offset-2 focus:ring-offset-ink focus:outline-none"
       >
         <Icon name="add" className="text-[18px]" />
         Add Product
-      </button>
+      </Link>
     </StateCard>
   );
 }
@@ -589,12 +589,12 @@ function NoOrdersState() {
       title="No orders yet"
       copy="Orders from your customers will appear here once they are placed."
     >
-      <button
-        type="button"
+      <Link
+        href="/seller/products"
         className="rounded border border-ivory bg-transparent px-lg py-sm font-label-md text-label-md uppercase tracking-wider text-ivory transition-colors duration-300 hover:bg-ivory/5 focus:ring-2 focus:ring-ivory focus:ring-offset-2 focus:ring-offset-ink focus:outline-none"
       >
         Manage Products
-      </button>
+      </Link>
     </StateCard>
   );
 }

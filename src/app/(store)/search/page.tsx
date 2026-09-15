@@ -4,6 +4,7 @@ import ResultsGrid from "@/components/search/ResultsGrid";
 import RetryButton from "@/components/search/RetryButton";
 import { getBrands, getCategories, resolveTaxonomyId } from "@/lib/api/catalog";
 import { search } from "@/lib/api/search";
+import { demoFilterBrands, demoFilterCategories, demoSearch } from "@/lib/demo/search";
 import { isApiError } from "@/lib/api/client";
 import type { ApiError } from "@/lib/api/client";
 import type { GridParams } from "@/components/search/ResultsGrid";
@@ -49,10 +50,19 @@ export default async function SearchPage({
   const knownCategories =
     categoriesResult.status === "fulfilled" ? categoriesResult.value : [];
   const knownBrands = brandsResult.status === "fulfilled" ? brandsResult.value : [];
+  // Gateway unreachable (e.g. the storefront deployed on its own): browse the demo catalogue.
+  const offline =
+    categoriesResult.status === "rejected" &&
+    isApiError(categoriesResult.reason) &&
+    categoriesResult.reason.status === 0;
 
   // Home tiles and footer links carry slugs ("electronics"); search needs catalog ids.
-  const categoryId = resolveTaxonomyId(asString(raw.categoryId), knownCategories);
-  const brandId = resolveTaxonomyId(asString(raw.brandId), knownBrands);
+  const categoryId = offline
+    ? asString(raw.categoryId)
+    : resolveTaxonomyId(asString(raw.categoryId), knownCategories);
+  const brandId = offline
+    ? asString(raw.brandId)
+    : resolveTaxonomyId(asString(raw.brandId), knownBrands);
   const unknownFilter = categoryId === null || brandId === null;
 
   const params: GridParams = {
@@ -75,15 +85,25 @@ export default async function SearchPage({
   let totalElements = 0;
   let error: ApiError | null = null;
 
-  if (!unknownFilter) {
+  if (offline) {
+    const res = demoSearch(params);
+    items = res.items;
+    totalElements = res.totalElements;
+  } else if (!unknownFilter) {
     try {
       const res = await search({ ...params, page, size: PAGE_SIZE });
       items = res.items;
       totalElements = res.totalElements;
     } catch (err) {
-      error = isApiError(err)
-        ? err
-        : { status: 0, title: "Request failed", extensions: {} };
+      if (isApiError(err) && err.status === 0) {
+        const res = demoSearch(params);
+        items = res.items;
+        totalElements = res.totalElements;
+      } else {
+        error = isApiError(err)
+          ? err
+          : { status: 0, title: "Request failed", extensions: {} };
+      }
     }
   }
 
@@ -102,12 +122,12 @@ export default async function SearchPage({
         categories={
           knownCategories.length > 0
             ? knownCategories.map((c) => ({ name: c.name, categoryId: c.id }))
-            : undefined
+            : demoFilterCategories
         }
         brands={
           knownBrands.length > 0
             ? knownBrands.map((b) => ({ name: b.name, brandId: b.id }))
-            : undefined
+            : demoFilterBrands
         }
       />
 
