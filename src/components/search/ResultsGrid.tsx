@@ -63,7 +63,7 @@ export default function ResultsGrid({
             name={item.name}
             price={item.listPrice}
             currency={item.currency}
-            image={PLACEHOLDER}
+            image={item.image ?? PLACEHOLDER}
           />
         ))}
         {loading &&

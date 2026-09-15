@@ -54,11 +54,13 @@ function AddressCard({
   address,
   isDefault,
   onUse,
+  onEdit,
   onDelete,
 }: {
   address: ShippingAddress;
   isDefault: boolean;
   onUse: () => void;
+  onEdit: () => void;
   onDelete: () => void;
 }) {
   return (
@@ -110,6 +112,7 @@ function AddressCard({
               <button
                 type="button"
                 title="Edit address"
+                onClick={onEdit}
                 className="flex items-center gap-xs font-label-md text-label-md text-muted transition-colors hover:text-ivory"
               >
                 <Icon name="edit" className="text-[18px]" />
@@ -139,6 +142,7 @@ function AddressCard({
               <button
                 type="button"
                 title="Edit address"
+                onClick={onEdit}
                 className="flex items-center gap-xs font-label-md text-label-md text-muted transition-colors hover:text-ivory"
               >
                 <Icon name="edit" className="text-[18px]" />
@@ -278,35 +282,50 @@ function AuthState() {
 
 function AddAddressModal({
   onClose,
+  editing,
 }: {
   onClose: () => void;
+  /** When set, the modal edits this address instead of adding a new one. */
+  editing?: ShippingAddress;
 }) {
-  const { addAddress, selectAddress, selectedAddress } = useAddresses();
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [line1, setLine1] = useState("");
-  const [city, setCity] = useState("");
-  const [postalCode, setPostalCode] = useState("");
-  const [country, setCountry] = useState(countries[0]);
-  const [setAsDefault, setSetAsDefault] = useState(false);
+  const { addAddress, updateAddress, selectAddress, selectedAddress } = useAddresses();
+  const [name, setName] = useState(editing?.name ?? "");
+  const [phone, setPhone] = useState(editing?.phone ?? "");
+  const [line1, setLine1] = useState(editing?.line1 ?? "");
+  const [city, setCity] = useState(editing?.city ?? "");
+  const [postalCode, setPostalCode] = useState(editing?.postalCode ?? "");
+  const [country, setCountry] = useState(
+    editing && countries.includes(editing.country) ? editing.country : countries[0],
+  );
+  const [setAsDefault, setSetAsDefault] = useState(
+    editing ? selectedAddress?.id === editing.id : false,
+  );
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (saving) return;
     setSaving(true);
-    await new Promise((resolve) => setTimeout(resolve, 1200));
+    await new Promise((resolve) => setTimeout(resolve, 800));
     const previousDefaultId = selectedAddress?.id ?? null;
-    addAddress({
+    const input = {
       name: name.trim(),
       phone: phone.trim(),
       line1: line1.trim(),
+      line2: editing?.line2,
+      label: editing?.label,
       city: city.trim(),
       postalCode: postalCode.trim(),
       country,
-    });
-    if (!setAsDefault && previousDefaultId) {
-      selectAddress(previousDefaultId);
+    };
+    if (editing) {
+      updateAddress(editing.id, input);
+      if (setAsDefault) selectAddress(editing.id);
+    } else {
+      addAddress(input);
+      if (!setAsDefault && previousDefaultId) {
+        selectAddress(previousDefaultId);
+      }
     }
     onClose();
   };
@@ -325,7 +344,7 @@ function AddAddressModal({
         <header className="flex items-center justify-between border-b border-ivory/10 bg-surface px-lg py-md">
           <h2 className="flex items-center gap-md font-title-lg text-title-lg text-on-surface">
             <Icon name="location_on" className="text-secondary" />
-            Add New Address
+            {editing ? "Edit Address" : "Add New Address"}
           </h2>
           <button
             type="button"
@@ -481,6 +500,7 @@ export default function AddressesView({
   const { addresses, selectedAddress, selectAddress, removeAddress } =
     useAddresses();
   const [modalOpen, setModalOpen] = useState(demoState === "add");
+  const [editing, setEditing] = useState<ShippingAddress | null>(null);
 
   const isEmpty = demoState === "empty" || addresses.length === 0;
 
@@ -533,6 +553,7 @@ export default function AddressesView({
                   address={address}
                   isDefault={selectedAddress?.id === address.id}
                   onUse={() => selectAddress(address.id)}
+                  onEdit={() => setEditing(address)}
                   onDelete={() => handleDelete(address.id)}
                 />
               ))}
@@ -543,6 +564,9 @@ export default function AddressesView({
 
       {modalOpen ? (
         <AddAddressModal onClose={() => setModalOpen(false)} />
+      ) : null}
+      {editing ? (
+        <AddAddressModal key={editing.id} editing={editing} onClose={() => setEditing(null)} />
       ) : null}
     </div>
   );

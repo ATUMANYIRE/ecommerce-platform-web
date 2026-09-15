@@ -2,7 +2,14 @@
 
 import { createContext, useCallback, useContext, useMemo } from "react";
 import type { ReactNode } from "react";
-import { addCartItem as apiAddCartItem } from "@/lib/api/cart";
+import {
+  addCartItem as apiAddCartItem,
+  MAX_CART_LINES,
+  MAX_QUANTITY_PER_LINE,
+  removeCartItem as apiRemoveCartItem,
+  updateCartItem as apiUpdateCartItem,
+} from "@/lib/api/cart";
+import { getSession } from "@/lib/auth/session";
 import { findCatalogProduct } from "@/lib/cart/catalog";
 import { LocalStorageStore, useStore } from "@/lib/utils/localStorageStore";
 
@@ -54,6 +61,21 @@ const cartStore = new LocalStorageStore<CartItem[]>(
       : [],
 );
 
+let serverSync: Promise<unknown> = Promise.resolve();
+
+/**
+ * Sends cart writes to cart-service one at a time, in click order. Fired
+ * independently, a quantity change could reach the server before the slower
+ * add that created the line (a cold add took 9 s locally) and fail with 404,
+ * leaving the server cart different from the one on screen.
+ */
+function syncToServer(write: () => Promise<unknown>): void {
+  if (!getSession()) return; // guests keep the local cart only
+  serverSync = serverSync.then(write).catch(() => {
+    // gateway offline — local store is the fallback source of truth
+  });
+}
+
 /**
  * Client-side cart store (localStorage-backed). The gateway is optional in
  * local dev, so the store is the source of truth for the UI; the real cart API
@@ -73,16 +95,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }
       : findCatalogProduct(sku);
 
+    let added = 0;
     cartStore.set((prev) => {
       const existing = prev.find((item) => item.sku === sku);
       if (existing) {
+        const next = Math.min(MAX_QUANTITY_PER_LINE, existing.quantity + quantity);
+        added = next - existing.quantity;
         return prev.map((item) =>
-          item.sku === sku
-            ? { ...item, quantity: item.quantity + quantity }
-            : item,
+          item.sku === sku ? { ...item, quantity: next } : item,
         );
       }
-      if (!known) return prev;
+      if (!known || prev.length >= MAX_CART_LINES) return prev;
+      added = Math.min(MAX_QUANTITY_PER_LINE, quantity);
       return [
         ...prev,
         {
@@ -91,28 +115,33 @@ export function CartProvider({ children }: { children: ReactNode }) {
           price: known.price,
           currency: known.currency,
           image: known.image,
-          quantity,
+          quantity: added,
           category: known.category,
         },
       ];
     });
 
-    apiAddCartItem(sku, quantity).catch(() => {
-      // gateway offline — local store is the fallback source of truth
-    });
+    if (added > 0) {
+      syncToServer(() => apiAddCartItem(sku, added));
+    }
   }, []);
 
   const removeItem = useCallback((sku: string) => {
     cartStore.set((prev) => prev.filter((item) => item.sku !== sku));
+    syncToServer(() => apiRemoveCartItem(sku));
   }, []);
 
   const setQuantity = useCallback((sku: string, quantity: number) => {
+    const next = Math.min(MAX_QUANTITY_PER_LINE, Math.floor(quantity));
     cartStore.set((prev) =>
-      quantity <= 0
+      next <= 0
         ? prev.filter((item) => item.sku !== sku)
         : prev.map((item) =>
-            item.sku === sku ? { ...item, quantity } : item,
+            item.sku === sku ? { ...item, quantity: next } : item,
           ),
+    );
+    syncToServer(() =>
+      next <= 0 ? apiRemoveCartItem(sku) : apiUpdateCartItem(sku, next),
     );
   }, []);
 

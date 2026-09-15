@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useWishlist } from "@/context/WishlistContext";
-import { resolveWishlistProduct } from "@/lib/wishlist/catalog";
+import { fetchWishlistProduct, resolveWishlistProduct } from "@/lib/wishlist/catalog";
 import type { WishlistProduct } from "@/lib/wishlist/catalog";
 import WishlistCard from "@/components/wishlist/WishlistCard";
 import Icon from "@/components/ui/Icon";
@@ -38,6 +39,28 @@ function StateCircle({ children }: { children: React.ReactNode }) {
 export default function WishlistView({ demoState }: WishlistViewProps) {
   const router = useRouter();
   const { skus } = useWishlist();
+  // Catalog lookups for saved SKUs outside the demo catalog; null = not found.
+  const [fetched, setFetched] = useState<Record<string, WishlistProduct | null>>({});
+  const unresolved = skus.filter(
+    (sku) => resolveWishlistProduct(sku) === null && !(sku in fetched),
+  );
+  const unresolvedKey = unresolved.join(",");
+
+  useEffect(() => {
+    if (!unresolvedKey) return;
+    let cancelled = false;
+    const pending = unresolvedKey.split(",");
+    Promise.all(
+      pending.map(async (sku) => [sku, await fetchWishlistProduct(sku)] as const),
+    ).then((entries) => {
+      if (!cancelled) {
+        setFetched((previous) => ({ ...previous, ...Object.fromEntries(entries) }));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [unresolvedKey]);
 
   if (demoState === "auth") {
     return (
@@ -123,8 +146,13 @@ export default function WishlistView({ demoState }: WishlistViewProps) {
   }
 
   const resolvedProducts = skus
-    .map(resolveWishlistProduct)
+    .map((sku) => resolveWishlistProduct(sku) ?? fetched[sku] ?? null)
     .filter((product): product is WishlistProduct => product !== null);
+
+  if (resolvedProducts.length === 0 && unresolved.length > 0) {
+    // Still looking the saved items up; avoid flashing the empty state.
+    return <div className="flex-grow" aria-busy="true" />;
+  }
 
   if (skus.length === 0 || resolvedProducts.length === 0) {
     return (

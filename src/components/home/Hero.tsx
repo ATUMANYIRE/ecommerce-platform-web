@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Button from "@/components/ui/Button";
 import { heroImage } from "@/lib/demo-data";
 
@@ -5,11 +6,17 @@ export default function Hero() {
   return (
     <section className="relative flex h-[700px] min-h-[500px] w-full items-center justify-center overflow-hidden">
       {/* Backdrop */}
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 -z-10 bg-cover bg-center"
-        style={{ backgroundImage: `url(${heroImage})` }}
-      >
+      {/* next/image instead of a CSS background: the source PNG is 1.4 MB, and
+          the optimizer serves a resized WebP/AVIF that also loads first (LCP). */}
+      <div aria-hidden="true" className="absolute inset-0 -z-10">
+        <Image
+          src={heroImage}
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center"
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
         <div
           className="pointer-events-none absolute inset-0 opacity-5"

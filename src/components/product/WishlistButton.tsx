@@ -24,7 +24,13 @@ export default function WishlistButton({
     <button
       type="button"
       data-product-id={productId}
-      onClick={() => toggle(productId)}
+      onClick={(event) => {
+        // Cards wrap this button in a product link: without this, saving an
+        // item also navigated to its product page.
+        event.preventDefault();
+        event.stopPropagation();
+        toggle(productId);
+      }}
       aria-pressed={active}
       aria-label={active ? "Remove from wishlist" : "Add to wishlist"}
       className={cn(

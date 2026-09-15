@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
 import { formatAmount } from "@/lib/utils/currency";
+import { isUnoptimizedImage } from "@/lib/utils/image";
 import WishlistButton from "@/components/product/WishlistButton";
 
 type ProductCardProps = {
@@ -51,6 +52,7 @@ export default function ProductCard({
           src={src}
           alt={name}
           fill
+          unoptimized={isUnoptimizedImage(src)}
           sizes="(max-width: 768px) 50vw, 320px"
           className="object-cover transition-transform duration-500 group-hover:scale-105"
         />

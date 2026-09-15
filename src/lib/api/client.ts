@@ -23,6 +23,10 @@ export type ApiRequestOptions = {
   onUnauthorized?: () => Promise<boolean>;
 };
 
+const REQUEST_TIMEOUT_MS = 30_000;
+/** Longest Retry-After worth waiting for inside a single call; longer waits are surfaced to the caller. */
+const MAX_AUTOMATIC_RETRY_WAIT_MS = 5_000;
+
 function correlationId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID();
@@ -30,7 +34,7 @@ function correlationId(): string {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function parseProblem(body: unknown): ApiError {
+function parseProblem(body: unknown, httpStatus: number): ApiError {
   const record =
     body !== null && typeof body === "object"
       ? (body as Record<string, unknown>)
@@ -46,7 +50,8 @@ function parseProblem(body: unknown): ApiError {
     typeof record.correlationId === "string"
       ? record.correlationId
       : undefined;
-  const status = Number(record.status ?? 0);
+  // Not every error body carries `status`; the HTTP status is the source of truth.
+  const status = Number(record.status) || httpStatus;
   const knownKeys = new Set([
     "type",
     "title",
@@ -65,13 +70,45 @@ function parseProblem(body: unknown): ApiError {
   return { status, title, detail, errors, correlationId, extensions };
 }
 
+/** AbortSignal.timeout is missing in older browsers; fall back to a timer. */
+function timeoutSignal(ms: number): AbortSignal {
+  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+    return AbortSignal.timeout(ms);
+  }
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), ms);
+  return controller.signal;
+}
+
+/** Retry-After is whole seconds (the gateway) or, per RFC 9110, an HTTP date. */
+function retryAfterMs(res: Response): number {
+  const header = res.headers.get("Retry-After");
+  if (!header) return 1_000;
+  const seconds = Number(header);
+  if (Number.isFinite(seconds)) return Math.max(0, seconds * 1_000);
+  const date = Date.parse(header);
+  return Number.isNaN(date) ? 1_000 : Math.max(0, date - Date.now());
+}
+
+export function isApiError(value: unknown): value is ApiError {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    "status" in value &&
+    typeof (value as { status: unknown }).status === "number"
+  );
+}
+
 /**
  * Central API client.
  * - Base URL from Next public env (defaults to the gateway on localhost:8080).
  * - Attaches X-Correlation-Id on every request.
- * - Attaches Authorization: Bearer when `auth` is true (token via getAccessToken).
- * - Normalizes RFC 9457 application/problem+json bodies into ApiError.
- * - Honors Retry-After on 429.
+ * - Attaches Authorization: Bearer when `auth` is true (token via getAccessToken),
+ *   re-reading the token for the retry after a refresh.
+ * - Normalizes RFC 9457 application/problem+json bodies into ApiError; network
+ *   failures and timeouts become an ApiError with status 0.
+ * - On 429, retries a GET once when Retry-After is short. Writes are never
+ *   retried automatically: checkout has no idempotency key.
  */
 export async function apiFetch<T>(
   path: string,
@@ -86,65 +123,71 @@ export async function apiFetch<T>(
     onUnauthorized,
   } = options;
 
-  const headers: Record<string, string> = {
-    "X-Correlation-Id": correlationId(),
-    Accept: "application/json",
-    ...extraHeaders,
+  const buildHeaders = (): Record<string, string> => {
+    const headers: Record<string, string> = {
+      "X-Correlation-Id": correlationId(),
+      Accept: "application/json",
+      ...extraHeaders,
+    };
+    if (body !== undefined) {
+      headers["Content-Type"] = "application/json";
+    }
+    if (auth) {
+      const token = getAccessToken?.();
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+    }
+    return headers;
   };
 
-  if (body !== undefined) {
-    headers["Content-Type"] = "application/json";
-  }
-
-  if (auth) {
-    const token = getAccessToken?.();
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
-  }
-
-  const controller = new AbortController();
-  const timeoutSignal = AbortSignal.timeout?.(30_000);
-  const signal = timeoutSignal
-    ? AbortSignal.any([controller.signal, timeoutSignal])
-    : controller.signal;
-
   const doFetch = async (): Promise<Response> => {
-    return fetch(`${env.apiUrl}${path}`, {
-      method,
-      headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-      signal,
-      cache: "no-store",
-    });
+    try {
+      return await fetch(`${env.apiUrl}${path}`, {
+        method,
+        headers: buildHeaders(),
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+        signal: timeoutSignal(REQUEST_TIMEOUT_MS),
+        cache: "no-store",
+      });
+    } catch (cause) {
+      const timedOut =
+        cause instanceof DOMException &&
+        (cause.name === "TimeoutError" || cause.name === "AbortError");
+      const error: ApiError = {
+        status: 0,
+        title: timedOut ? "Request timed out" : "Network error",
+        detail: "We couldn't reach the server. Please try again.",
+        extensions: {},
+      };
+      throw error;
+    }
   };
 
   let res = await doFetch();
 
   // Single 401 refresh-once retry.
-  if (res.status === 401 && onUnauthorized) {
+  if (res.status === 401 && auth && onUnauthorized) {
     const refreshed = await onUnauthorized();
     if (refreshed) {
       res = await doFetch();
     }
   }
 
-  if (!res.ok) {
-    if (res.status === 429) {
-      const retryAfter = Number(res.headers.get("Retry-After") ?? 1) * 1000;
-      await sleep(retryAfter);
+  if (res.status === 429 && method === "GET") {
+    const wait = retryAfterMs(res);
+    if (wait <= MAX_AUTOMATIC_RETRY_WAIT_MS) {
+      await sleep(wait);
       res = await doFetch();
-      if (res.ok) {
-        return (await res.json()) as T;
-      }
     }
+  }
 
+  if (!res.ok) {
     let error: ApiError;
     const contentType = res.headers.get("content-type") ?? "";
     try {
       if (contentType.includes("application/problem+json") || contentType.includes("application/json")) {
-        const json = await res.json();
-        error = parseProblem(json);
+        error = parseProblem(await res.json(), res.status);
       } else {
         error = {
           status: res.status,
@@ -159,10 +202,13 @@ export async function apiFetch<T>(
         extensions: {},
       };
     }
+    if (res.status === 429) {
+      error.extensions.retryAfterSeconds = Math.ceil(retryAfterMs(res) / 1_000);
+    }
     throw error;
   }
 
-  if (res.status === 204) {
+  if (res.status === 204 || res.headers.get("content-length") === "0") {
     return undefined as T;
   }
 

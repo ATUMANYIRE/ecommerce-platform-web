@@ -21,6 +21,7 @@ type AddressContextValue = {
   selectedAddress: ShippingAddress | null;
   selectAddress: (id: string) => void;
   addAddress: (input: Omit<ShippingAddress, "id">) => ShippingAddress;
+  updateAddress: (id: string, input: Omit<ShippingAddress, "id">) => void;
   removeAddress: (id: string) => void;
 };
 
@@ -114,6 +115,15 @@ export function AddressProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const updateAddress = useCallback(
+    (id: string, input: Omit<ShippingAddress, "id">) => {
+      addressesStore.set((prev) =>
+        prev.map((address) => (address.id === id ? { ...address, ...input, id } : address)),
+      );
+    },
+    [],
+  );
+
   const removeAddress = useCallback((id: string) => {
     addressesStore.set((prev) => prev.filter((address) => address.id !== id));
     selectedStore.set((selected) => (selected === id ? null : selected));
@@ -127,9 +137,10 @@ export function AddressProvider({ children }: { children: ReactNode }) {
       selectedAddress,
       selectAddress,
       addAddress,
+      updateAddress,
       removeAddress,
     };
-  }, [addresses, selectedId, selectAddress, addAddress, removeAddress]);
+  }, [addresses, selectedId, selectAddress, addAddress, updateAddress, removeAddress]);
 
   return (
     <AddressContext.Provider value={value}>{children}</AddressContext.Provider>

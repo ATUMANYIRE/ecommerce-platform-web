@@ -2,7 +2,10 @@ import Link from "next/link";
 import Filters from "@/components/search/Filters";
 import ResultsGrid from "@/components/search/ResultsGrid";
 import RetryButton from "@/components/search/RetryButton";
+import { getBrands, getCategories, resolveTaxonomyId } from "@/lib/api/catalog";
 import { search } from "@/lib/api/search";
+import { demoFilterBrands, demoFilterCategories, demoSearch } from "@/lib/demo/search";
+import { isApiError } from "@/lib/api/client";
 import type { ApiError } from "@/lib/api/client";
 import type { GridParams } from "@/components/search/ResultsGrid";
 import { buildSearchUrl } from "@/lib/search-url";
@@ -10,6 +13,9 @@ import { buildSearchUrl } from "@/lib/search-url";
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 20;
+/** search-service rejects (page + 1) × size above Elasticsearch's 10 000 result window. */
+const MAX_PAGE = Math.floor(10_000 / PAGE_SIZE) - 1;
+const MAX_QUERY_LENGTH = 200;
 
 function asString(v: string | string[] | undefined): string | undefined {
   return typeof v === "string" ? v : undefined;
@@ -19,7 +25,7 @@ function asNumber(v: string | string[] | undefined): number | undefined {
   const s = asString(v);
   if (s === undefined || s === "") return undefined;
   const n = Number(s);
-  return Number.isFinite(n) ? n : undefined;
+  return Number.isFinite(n) && n >= 0 ? n : undefined;
 }
 
 export default async function SearchPage({
@@ -29,19 +35,48 @@ export default async function SearchPage({
 }) {
   const raw = await searchParams;
 
-  const q = asString(raw.q);
-  const categoryId = asString(raw.categoryId);
-  const brandId = asString(raw.brandId);
-  const minPrice = asNumber(raw.minPrice);
-  const maxPrice = asNumber(raw.maxPrice);
-  const page = asNumber(raw.page) ?? 0;
+  const q = asString(raw.q)?.slice(0, MAX_QUERY_LENGTH);
+  let minPrice = asNumber(raw.minPrice);
+  let maxPrice = asNumber(raw.maxPrice);
+  if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) {
+    [minPrice, maxPrice] = [maxPrice, minPrice];
+  }
+  const page = Math.min(MAX_PAGE, Math.floor(asNumber(raw.page) ?? 0));
 
-  const params: GridParams = { q, categoryId, brandId, minPrice, maxPrice };
+  const [categoriesResult, brandsResult] = await Promise.allSettled([
+    getCategories(),
+    getBrands(),
+  ]);
+  const knownCategories =
+    categoriesResult.status === "fulfilled" ? categoriesResult.value : [];
+  const knownBrands = brandsResult.status === "fulfilled" ? brandsResult.value : [];
+  // Gateway unreachable (e.g. the storefront deployed on its own): browse the demo catalogue.
+  const offline =
+    categoriesResult.status === "rejected" &&
+    isApiError(categoriesResult.reason) &&
+    categoriesResult.reason.status === 0;
+
+  // Home tiles and footer links carry slugs ("electronics"); search needs catalog ids.
+  const categoryId = offline
+    ? asString(raw.categoryId)
+    : resolveTaxonomyId(asString(raw.categoryId), knownCategories);
+  const brandId = offline
+    ? asString(raw.brandId)
+    : resolveTaxonomyId(asString(raw.brandId), knownBrands);
+  const unknownFilter = categoryId === null || brandId === null;
+
+  const params: GridParams = {
+    q,
+    categoryId: categoryId ?? undefined,
+    brandId: brandId ?? undefined,
+    minPrice,
+    maxPrice,
+  };
   // Whole-string key so Filters/Results client state resets on every navigation.
   const urlKey = buildSearchUrl({
     q,
-    categoryId,
-    brandId,
+    categoryId: params.categoryId,
+    brandId: params.brandId,
     minPrice: minPrice !== undefined ? String(minPrice) : undefined,
     maxPrice: maxPrice !== undefined ? String(maxPrice) : undefined,
   });
@@ -50,15 +85,25 @@ export default async function SearchPage({
   let totalElements = 0;
   let error: ApiError | null = null;
 
-  try {
-    const res = await search({ ...params, page, size: PAGE_SIZE });
+  if (offline) {
+    const res = demoSearch(params);
     items = res.items;
     totalElements = res.totalElements;
-  } catch (err) {
-    if (err && typeof err === "object" && "status" in err) {
-      error = err as ApiError;
-    } else {
-      error = { status: 0, title: "Request failed", extensions: {} };
+  } else if (!unknownFilter) {
+    try {
+      const res = await search({ ...params, page, size: PAGE_SIZE });
+      items = res.items;
+      totalElements = res.totalElements;
+    } catch (err) {
+      if (isApiError(err) && err.status === 0) {
+        const res = demoSearch(params);
+        items = res.items;
+        totalElements = res.totalElements;
+      } else {
+        error = isApiError(err)
+          ? err
+          : { status: 0, title: "Request failed", extensions: {} };
+      }
     }
   }
 
@@ -70,10 +115,20 @@ export default async function SearchPage({
       <Filters
         key={`filters-${urlKey}`}
         q={q}
-        categoryId={categoryId}
-        brandId={brandId}
+        categoryId={params.categoryId}
+        brandId={params.brandId}
         minPrice={minPrice !== undefined ? String(minPrice) : undefined}
         maxPrice={maxPrice !== undefined ? String(maxPrice) : undefined}
+        categories={
+          knownCategories.length > 0
+            ? knownCategories.map((c) => ({ name: c.name, categoryId: c.id }))
+            : demoFilterCategories
+        }
+        brands={
+          knownBrands.length > 0
+            ? knownBrands.map((b) => ({ name: b.name, brandId: b.id }))
+            : demoFilterBrands
+        }
       />
 
       <div className="flex flex-1 flex-col">

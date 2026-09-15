@@ -135,6 +135,7 @@ function AddressCard({
 export default function CheckoutView({ demoState }: CheckoutViewProps) {
   const router = useRouter();
   const { items, subtotal } = useCart();
+  const currency = items[0]?.currency ?? "USD";
   const { addresses, selectedAddress, selectAddress } = useAddresses();
   const [step, setStep] = useState<"delivery" | "review">("delivery");
   const [promo, setPromo] = useState(
@@ -143,8 +144,10 @@ export default function CheckoutView({ demoState }: CheckoutViewProps) {
   const [promoError, setPromoError] = useState(
     demoState === "expiredpromo",
   );
-  const [discount, setDiscount] = useState(0);
+  const [promoApplied, setPromoApplied] = useState(false);
   const [showEmpty, setShowEmpty] = useState(demoState === "empty");
+  // Derived from the live subtotal so it stays correct if the cart changes after applying.
+  const discount = promoApplied ? Math.round(subtotal * 10) / 100 : 0;
 
   const promoLocked = demoState === "expiredpromo";
   const noSaved =
@@ -155,13 +158,8 @@ export default function CheckoutView({ demoState }: CheckoutViewProps) {
 
   function applyPromo() {
     const code = promo.trim().toUpperCase();
-    if (code === PROMO_CODE) {
-      setPromoError(false);
-      setDiscount(subtotal * 0.1);
-    } else {
-      setPromoError(true);
-      setDiscount(0);
-    }
+    setPromoError(code !== PROMO_CODE);
+    setPromoApplied(code === PROMO_CODE);
   }
 
   if (items.length === 0) {
@@ -299,14 +297,14 @@ export default function CheckoutView({ demoState }: CheckoutViewProps) {
                 <div className="flex justify-between">
                   <span>Subtotal</span>
                   <span className="text-on-surface">
-                    {formatAmount(subtotal, "USD")}
+                    {formatAmount(subtotal, currency)}
                   </span>
                 </div>
                 {discount > 0 && (
                   <div className="flex justify-between">
                     <span>Promo ({PROMO_CODE})</span>
                     <span className="text-secondary">
-                      −{formatAmount(discount, "USD")}
+                      −{formatAmount(discount, currency)}
                     </span>
                   </div>
                 )}
@@ -317,7 +315,7 @@ export default function CheckoutView({ demoState }: CheckoutViewProps) {
                 <div className="flex justify-between">
                   <span>Estimated Tax</span>
                   <span className="text-on-surface">
-                    {formatAmount(tax, "USD")}
+                    {formatAmount(tax, currency)}
                   </span>
                 </div>
               </div>
@@ -332,12 +330,16 @@ export default function CheckoutView({ demoState }: CheckoutViewProps) {
               Total Due
             </span>
             <span className="font-headline-lg-mobile text-headline-lg-mobile text-secondary">
-              {formatAmount(totalDue, "USD")}
+              {formatAmount(totalDue, currency)}
             </span>
           </div>
           <button
             type="button"
-            onClick={() => router.push("/checkout/confirmation")}
+            onClick={() =>
+              router.push(
+                promoApplied ? `/checkout/payment?promo=${PROMO_CODE}` : "/checkout/payment",
+              )
+            }
             className="flex w-full items-center justify-center gap-sm rounded bg-secondary py-md font-title-lg text-title-lg text-surface-container-lowest shadow-[0_4px_14px_0_rgba(201,168,106,0.2)] transition-colors hover:bg-secondary-fixed"
           >
             Continue to Payment
@@ -508,7 +510,9 @@ export default function CheckoutView({ demoState }: CheckoutViewProps) {
               {promoError && (
                 <div className="mt-sm flex items-center gap-xs font-label-sm text-label-sm text-error">
                   <Icon name="error" className="text-[14px]" />
-                  Invalid promotion: code has expired
+                  {promoLocked
+                    ? "Invalid promotion: code has expired"
+                    : "Invalid promotion code."}
                 </div>
               )}
               {!promoError && discount > 0 && (
@@ -522,13 +526,13 @@ export default function CheckoutView({ demoState }: CheckoutViewProps) {
               <div className="flex items-center justify-between">
                 <span>Subtotal</span>
                 <span className="font-body-lg text-body-lg text-on-surface">
-                  {formatAmount(subtotal, "USD")}
+                  {formatAmount(subtotal, currency)}
                 </span>
               </div>
               {discount > 0 && (
                 <div className="flex items-center justify-between text-secondary">
                   <span>Promo ({PROMO_CODE})</span>
-                  <span>−{formatAmount(discount, "USD")}</span>
+                  <span>−{formatAmount(discount, currency)}</span>
                 </div>
               )}
               <div className="flex items-center justify-between">
@@ -542,7 +546,7 @@ export default function CheckoutView({ demoState }: CheckoutViewProps) {
                 Total
               </span>
               <span className="font-display-md text-[32px] leading-none text-on-surface">
-                {formatAmount(total, "USD")}
+                {formatAmount(total, currency)}
               </span>
             </div>
 

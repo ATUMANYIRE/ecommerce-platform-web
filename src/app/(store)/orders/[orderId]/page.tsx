@@ -1,24 +1,29 @@
 import OrderDetailsView from "@/components/orders/OrderDetailsView";
+import { pickDemoState } from "@/lib/demo-mode";
 
 type OrderDetailsRouteProps = {
+  params: Promise<{ orderId: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function OrderDetailsRoute({
+  params,
   searchParams,
 }: OrderDetailsRouteProps) {
-  const params = await searchParams;
-  const state = typeof params.state === "string" ? params.state : undefined;
-
-  const demoState =
-    state === "loading" ||
-    state === "notfound" ||
-    state === "tracking" ||
-    state === "delivered"
-      ? state
-      : undefined;
+  const { orderId } = await params;
+  const query = await searchParams;
+  const demoState = pickDemoState(query.state, [
+    "loading",
+    "notfound",
+    "tracking",
+    "delivered",
+  ] as const);
 
   return (
-    <OrderDetailsView key={demoState ?? "default"} demoState={demoState} />
+    <OrderDetailsView
+      key={`${orderId}-${demoState ?? "default"}`}
+      orderId={decodeURIComponent(orderId)}
+      demoState={demoState}
+    />
   );
 }

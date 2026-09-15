@@ -13,24 +13,21 @@ const PROMO_CODE = "ATLAS10";
  * off subtotal) so the Apply action has real behavior.
  */
 export default function OrderSummary() {
-  const { subtotal } = useCart();
+  const { items, subtotal } = useCart();
+  const currency = items[0]?.currency ?? "USD";
   const [promo, setPromo] = useState("");
-  const [discount, setDiscount] = useState(0);
   const [promoStatus, setPromoStatus] = useState<"idle" | "applied" | "invalid">(
     "idle",
   );
 
   function applyPromo() {
     const code = promo.trim().toUpperCase();
-    if (code === PROMO_CODE) {
-      setDiscount(subtotal * 0.1);
-      setPromoStatus("applied");
-    } else {
-      setDiscount(0);
-      setPromoStatus("invalid");
-    }
+    setPromoStatus(code === PROMO_CODE ? "applied" : "invalid");
   }
 
+  // Derived on every render: a stored amount went stale when quantities changed after applying.
+  const discount =
+    promoStatus === "applied" ? Math.round(subtotal * 10) / 100 : 0;
   const total = subtotal - discount;
 
   return (
@@ -45,7 +42,7 @@ export default function OrderSummary() {
             Subtotal
           </span>
           <span className="font-body-md text-body-md text-on-surface">
-            {formatAmount(subtotal, "USD")}
+            {formatAmount(subtotal, currency)}
           </span>
         </div>
         {promoStatus === "applied" && (
@@ -54,7 +51,7 @@ export default function OrderSummary() {
               Promo ({PROMO_CODE})
             </span>
             <span className="font-body-md text-body-md text-secondary">
-              −{formatAmount(discount, "USD")}
+              −{formatAmount(discount, currency)}
             </span>
           </div>
         )}
@@ -71,7 +68,7 @@ export default function OrderSummary() {
       <div className="mb-xl flex items-baseline justify-between border-t border-white/10 pt-md">
         <span className="font-title-lg text-title-lg text-on-surface">Total</span>
         <span className="font-headline-lg text-headline-lg text-on-surface">
-          {formatAmount(total, "USD")}
+          {formatAmount(total, currency)}
         </span>
       </div>
 

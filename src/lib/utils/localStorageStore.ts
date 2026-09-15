@@ -94,3 +94,13 @@ export function useStore<T>(store: LocalStorageStore<T>): T {
     store.getServerSnapshot,
   );
 }
+const noopSubscribe = () => () => {};
+
+/**
+ * False during server rendering and hydration, true afterwards. Lets views that
+ * read localStorage avoid flashing a "not found" or empty state before the
+ * stored data is available.
+ */
+export function useHydrated(): boolean {
+  return useSyncExternalStore(noopSubscribe, () => true, () => false);
+}

@@ -8,6 +8,8 @@ import Icon from "@/components/ui/Icon";
 import AccountSidebar from "@/components/account/AccountSidebar";
 import { formatAmount } from "@/lib/utils/currency";
 import { findCatalogProduct } from "@/lib/cart/catalog";
+import { orderTotal } from "@/lib/orders/demo-order";
+import { useAllOrders } from "@/lib/orders/placed-orders";
 import type { CatalogProduct } from "@/lib/cart/catalog";
 
 const lampImage =
@@ -35,10 +37,6 @@ const fallbackPreview: CatalogProduct[] = [
   },
 ];
 
-const recentOrders = [
-  { id: "ATL-8924", date: "Oct 24, 2023", status: "Processing", total: 425 },
-  { id: "ATL-8810", date: "Sep 12, 2023", status: "Delivered", total: 1240.5 },
-];
 
 type PreviewProduct = {
   catalog: CatalogProduct;
@@ -106,6 +104,16 @@ function PreviewCard({
 export default function AccountDashboardView() {
   const { addItem } = useCart();
   const { skus, count, remove } = useWishlist();
+  const allOrders = useAllOrders();
+  // Same data as My Orders, so every row opens a real order page.
+  const recentOrders = allOrders.slice(0, 3).map((order) => ({
+    id: order.id,
+    date: order.placedLabel.replace("Placed on ", ""),
+    status: order.status,
+    total: orderTotal(order),
+    currency: order.currency ?? "USD",
+  }));
+  const activeOrders = allOrders.filter((order) => order.status === "Processing" || order.status === "Shipped").length;
 
   const previewProducts: PreviewProduct[] = skus
     .slice(0, 4)
@@ -144,7 +152,7 @@ export default function AccountDashboardView() {
                 <Icon name="local_shipping" className="text-[24px] text-secondary" />
               </div>
               <span className="rounded bg-surface-container px-2 py-1 font-label-sm text-label-sm text-on-surface-variant">
-                2 Active
+                {activeOrders} Active
               </span>
             </div>
             <div>
@@ -282,11 +290,11 @@ export default function AccountDashboardView() {
                         </span>
                       </td>
                       <td className="p-md text-right font-body-lg text-body-lg text-on-surface">
-                        {formatAmount(order.total, "USD")}
+                        {formatAmount(order.total, order.currency)}
                       </td>
                       <td className="p-md text-right">
                         <Link
-                          href={`/orders/${order.id}`}
+                          href={`/orders/${encodeURIComponent(order.id)}`}
                           aria-label={`View Order ${order.id} Details`}
                           className="text-on-surface-variant transition-colors hover:text-on-surface"
                         >

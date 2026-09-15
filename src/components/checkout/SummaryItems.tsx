@@ -1,6 +1,7 @@
 import Image from "next/image";
 import type { CartItem } from "@/context/CartContext";
 import { formatAmount } from "@/lib/utils/currency";
+import { isUnoptimizedImage } from "@/lib/utils/image";
 
 type SummaryItemsProps = {
   items: CartItem[];
@@ -21,6 +22,7 @@ export default function SummaryItems({ items }: SummaryItemsProps) {
               src={item.image}
               alt={item.name}
               fill
+              unoptimized={isUnoptimizedImage(item.image)}
               sizes="80px"
               className="object-cover"
             />

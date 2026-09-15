@@ -9,6 +9,7 @@ import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import type { Suggestion } from "@/types/product";
 import Icon from "@/components/ui/Icon";
+import MobileMenu from "@/components/nav/MobileMenu";
 
 const demoProducts = [...trendingProducts, ...mixedProducts];
 
@@ -24,8 +25,9 @@ function demoMatches(trimmed: string): Suggestion[] {
 
 const navLinks = [
   { label: "Shop", href: "/search?q=*" },
-  { label: "Categories", href: "#categories" },
-  { label: "Deals", href: "#promo" },
+  // Sections of the home page; a bare "#categories" did nothing on any other page.
+  { label: "Categories", href: "/#categories" },
+  { label: "Deals", href: "/#promo" },
 ];
 
 export default function Header() {
@@ -35,6 +37,7 @@ export default function Header() {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
@@ -77,7 +80,7 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-background shadow-sm shadow-background/50">
+    <header className="sticky top-0 z-50 w-full print:hidden border-b border-white/10 bg-background shadow-sm shadow-background/50">
       {/* Desktop */}
       <div className="mx-auto hidden w-full max-w-max-width items-center justify-between px-margin-desktop py-md md:flex">
         <div className="flex items-center gap-xl">
@@ -119,6 +122,7 @@ export default function Header() {
                 }}
                 placeholder="Search..."
                 type="text"
+                maxLength={200}
                 className="w-full border-b border-white/30 bg-surface-container-highest py-2 pl-10 pr-4 text-sm text-on-surface transition-colors focus:border-white focus:outline-none placeholder:text-on-surface-variant"
                 aria-label="Search"
               />
@@ -185,9 +189,10 @@ export default function Header() {
           ATLAS
         </Link>
         <div className="flex items-center gap-md">
-          <button type="button" aria-label="Search" className="text-on-surface">
+          {/* Was a button with no action; the search page has the full filter panel. */}
+          <Link href="/search?q=*" aria-label="Search" className="text-on-surface">
             <Icon name="search" />
-          </button>
+          </Link>
           <Link
             href="/wishlist"
             aria-label={`Wishlist, ${wishlistCount} items`}
@@ -212,11 +217,18 @@ export default function Header() {
               </span>
             )}
           </Link>
-          <button type="button" aria-label="Menu" className="text-on-surface">
+          <button
+            type="button"
+            aria-label="Open menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen(true)}
+            className="text-on-surface"
+          >
             <Icon name="menu" />
           </button>
         </div>
       </div>
+      <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} links={navLinks} />
     </header>
   );
 }

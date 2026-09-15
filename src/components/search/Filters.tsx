@@ -2,10 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { categories, brands } from "@/config/categories";
-import type { Brand, Category } from "@/config/categories";
+import { categories as configCategories, brands as configBrands } from "@/config/categories";
 import { buildSearchUrl } from "@/lib/search-url";
 import type { SearchUrlValues } from "@/lib/search-url";
+
+type Category = { name: string; categoryId: string };
+type Brand = { name: string; brandId: string };
 
 type FiltersProps = {
   q?: string;
@@ -13,9 +15,14 @@ type FiltersProps = {
   brandId?: string;
   minPrice?: string;
   maxPrice?: string;
+  /** Catalog categories (ids from GET /categories); the static config is only a fallback. */
+  categories?: Category[];
+  brands?: Brand[];
 };
 
 export default function Filters(initial: FiltersProps) {
+  const categories = initial.categories ?? configCategories;
+  const brands = initial.brands ?? configBrands;
   const router = useRouter();
   const [categoryId, setCategoryId] = useState(initial.categoryId);
   const [brandId, setBrandId] = useState(initial.brandId);

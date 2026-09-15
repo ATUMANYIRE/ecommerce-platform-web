@@ -31,6 +31,7 @@ export default function ProductActions({
   const wishlisted = has(sku);
   const [quantity, setQuantity] = useState(1);
   const [cartState, setCartState] = useState<CartState>("idle");
+  const [notify, setNotify] = useState(false);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -81,12 +82,20 @@ export default function ProductActions({
           Unavailable
         </button>
         <p className="text-center">
-          <a
-            href="#review"
-            className="font-body-md text-body-md text-on-surface-variant underline underline-offset-4 transition-colors hover:text-on-surface"
-          >
-            Notify me when available
-          </a>
+          {notify ? (
+            <span role="status" className="inline-flex items-center gap-xs font-body-md text-body-md text-secondary">
+              <Icon name="mark_email_read" className="text-[18px]" />
+              We&apos;ll e-mail you when it&apos;s back in stock.
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setNotify(true)}
+              className="font-body-md text-body-md text-on-surface-variant underline underline-offset-4 transition-colors hover:text-on-surface"
+            >
+              Notify me when available
+            </button>
+          )}
         </p>
       </div>
     );

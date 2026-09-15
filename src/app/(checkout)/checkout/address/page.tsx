@@ -19,6 +19,7 @@ export default function AddAddressPage() {
   const router = useRouter();
   const { addAddress } = useAddresses();
   const { items, subtotal } = useCart();
+  const currency = items[0]?.currency ?? "USD";
   const [form, setForm] = useState({
     fullName: "",
     addressLine1: "",
@@ -210,7 +211,7 @@ export default function AddAddressPage() {
             <div className="flex justify-between">
               <span className="text-on-surface-variant">Subtotal</span>
               <span className="text-on-surface">
-                {formatAmount(subtotal, "USD")}
+                {formatAmount(subtotal, currency)}
               </span>
             </div>
             <div className="flex justify-between">
@@ -224,7 +225,7 @@ export default function AddAddressPage() {
                 Total
               </span>
               <span className="font-headline-lg text-headline-lg text-on-surface">
-                {formatAmount(subtotal, "USD")}
+                {formatAmount(subtotal, currency)}
               </span>
             </div>
           </div>

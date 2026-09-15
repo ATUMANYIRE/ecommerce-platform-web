@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ProductReview } from "@/lib/demo-data";
 import { cn } from "@/lib/utils/cn";
 
@@ -59,13 +60,28 @@ function ReviewCard({ review }: { review: ProductReview }) {
   );
 }
 
-export default function ProductReviews({ reviews }: { reviews: ProductReview[] }) {
+export default function ProductReviews({
+  reviews,
+  sku,
+}: {
+  reviews: ProductReview[];
+  sku: string;
+}) {
+  const writeHref = `/products/${encodeURIComponent(sku)}/review`;
   return (
     <section className="flex flex-col gap-xl">
       <div className="flex items-end justify-between border-b border-outline-variant/30 pb-md">
         <h2 className="font-display-md text-headline-lg text-on-surface">
           Client Feedback
         </h2>
+        {reviews.length > 0 ? (
+          <Link
+            href={writeHref}
+            className="font-label-md text-label-md uppercase tracking-widest text-secondary transition-colors hover:text-secondary-fixed"
+          >
+            Write a Review
+          </Link>
+        ) : null}
       </div>
 
       {reviews.length === 0 ? (
@@ -81,17 +97,18 @@ export default function ProductReviews({ reviews }: { reviews: ProductReview[] }
             standards of the Atlas community and guides others in their
             curation.
           </p>
-          <button
-            type="button"
+          <Link
+            href={writeHref}
             className="rounded border border-on-surface bg-transparent px-xl py-sm font-label-md text-label-md uppercase tracking-widest text-on-surface transition-colors hover:bg-surface-variant"
           >
             Write a Review
-          </button>
+          </Link>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-gutter md:grid-cols-2">
-          {reviews.map((review) => (
-            <ReviewCard key={review.author} review={review} />
+          {reviews.map((review, index) => (
+            // Authors repeat ("Customer"), so the name cannot be the key.
+            <ReviewCard key={`${index}-${review.title}`} review={review} />
           ))}
         </div>
       )}

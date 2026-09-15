@@ -34,6 +34,12 @@ export type DemoOrder = {
   shipping: number;
   tax: number;
   addressLines: string[];
+  /** ISO 4217 code for every amount on the order (demo orders are USD). */
+  currency?: string;
+  discount?: number;
+  promoCode?: string;
+  /** Epoch ms, used to sort orders newest first. */
+  placedAt?: number;
 };
 
 const headphonesImage =
@@ -132,3 +138,96 @@ export const deliveredOrder: DemoOrder = {
     },
   ],
 };
+export const processingOrder: DemoOrder = {
+  id: "ATLAS-80417-C",
+  placedLabel: "Placed on November 2, 2023",
+  placedAt: Date.UTC(2023, 10, 2),
+  status: "Processing",
+  estDelivery: "Est. Delivery: Nov 8",
+  timeline: [
+    { label: "Received", state: "done" },
+    { label: "Processing", state: "active" },
+    { label: "Confirmed", state: "pending" },
+    { label: "Shipped", state: "pending" },
+    { label: "Delivered", state: "pending" },
+  ],
+  items: [
+    {
+      sku: "MK-140",
+      name: "Mechanical Keyboard",
+      image: "/images/keyboard.png",
+      quantity: 1,
+      price: 140,
+      currency: "USD",
+    },
+    {
+      sku: "RS-045",
+      name: "Rejuvenating Serum",
+      image: "/images/serum.png",
+      quantity: 2,
+      price: 45,
+      currency: "USD",
+    },
+  ],
+  carrier: "Pending",
+  trackingNumber: "Assigned when shipped",
+  trackingEvents: [
+    { title: "Order received", detail: "Nov 2, 2023 • 10:05 AM", state: "active" },
+  ],
+  subtotal: 230,
+  shipping: 0,
+  tax: 19.55,
+  addressLines: [
+    "Eleanor Vance",
+    "555 Market Street",
+    "34th Floor",
+    "San Francisco, CA 94104",
+    "United States",
+  ],
+};
+
+export const cancelledOrder: DemoOrder = {
+  id: "ATLAS-69903-A",
+  placedLabel: "Placed on September 12, 2023",
+  placedAt: Date.UTC(2023, 8, 12),
+  status: "Cancelled",
+  timeline: [
+    { label: "Received", state: "done", date: "Sep 12" },
+    { label: "Cancelled", state: "done", date: "Sep 13" },
+  ],
+  items: [
+    {
+      sku: "PR-120",
+      name: "Performance Runner",
+      image: "/images/runner.png",
+      quantity: 1,
+      price: 120,
+      currency: "USD",
+    },
+  ],
+  carrier: "—",
+  trackingNumber: "Not shipped",
+  trackingEvents: [
+    { title: "Order cancelled at your request", detail: "Sep 13, 2023 • 09:12 AM", state: "done" },
+  ],
+  subtotal: 120,
+  shipping: 15,
+  tax: 10.2,
+  addressLines: ["Eleanor Vance", "12 Aspen Retreat Road", "Aspen, CO 81611", "United States"],
+};
+
+/** Sample order history shown to every visitor alongside orders placed in this browser. */
+export const demoOrders: DemoOrder[] = [
+  processingOrder,
+  { ...demoOrder, placedAt: Date.UTC(2023, 9, 24, 15) },
+  { ...deliveredOrder, placedAt: Date.UTC(2023, 9, 24, 9) },
+  cancelledOrder,
+];
+
+export function orderTotal(order: DemoOrder): number {
+  return order.subtotal - (order.discount ?? 0) + order.shipping + order.tax;
+}
+
+export function orderItemCount(order: DemoOrder): number {
+  return order.items.reduce((sum, item) => sum + item.quantity, 0);
+}
