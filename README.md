@@ -27,6 +27,7 @@ out of the box with rich offline demo data.
   <img src="public/screenshots/cart.png" alt="Cart" width="49%" />
   <img src="public/screenshots/wishlist.png" alt="Wishlist" width="49%" />
   <img src="public/screenshots/account.png" alt="Account" width="49%" />
+  <img src="public/screenshots/product.png" alt="Product page" width="49%" />
 </p>
 
 ## Features
