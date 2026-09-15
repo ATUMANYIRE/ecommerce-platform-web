@@ -1,36 +1,97 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Atlas Marketplace
+
+A full-featured, dark-themed ecommerce storefront built with Next.js 16 and TypeScript. Designed as a demo/portfolio store that works against an external microservices backend — but ships with rich offline demo data so every flow works client-side with no backend required.
+
+## Features
+
+### Storefront
+- Home page with hero, category grid, trending products, and promotional sections
+- Product detail pages with breadcrumbs, live stock levels, add-to-cart/wishlist, reviews, and curated pairings
+- Full-text search with category, brand, and price-range filters plus autocomplete suggestions
+- Categories: Electronics, Fashion, Home, Beauty, Sports
+
+### Checkout (demo — no real payment)
+- Two-step checkout: address picker then review
+- Promo code support (`ATLAS10` for 10% off)
+- Delivery speed selection (Standard / Express)
+- Simulated payment processing (card, PayPal, cash on delivery)
+- Order confirmation with localStorage persistence
+
+### Account Hub
+- Dashboard, profile/settings, saved addresses (CRUD)
+- Order history with tracking timeline, carrier info, and printable invoice
+- Wishlist, notifications, auth pages (login, register, forgot/reset password, email verification)
+
+### Seller Hub
+- Product management (list, add, edit)
+- Order status management
+- Inventory/stock updates
+- Review replies
+- Store profile and payout settings
+
+### Admin Console
+- Promotions management (create, toggle, schedule promo codes)
+- Review moderation queue (approve, reject, flag)
+- Seller account management
+
+### Info Pages
+- About, FAQ, shipping, returns, contact, terms, privacy, become-a-seller
+
+## Tech Stack
+
+| Layer | Choice |
+|---|---|
+| Framework | Next.js 16 (App Router, React Server Components) |
+| React | 19 |
+| Language | TypeScript 5 (strict mode) |
+| Styling | Tailwind CSS v4, dark Material-3-like palette |
+| State | React Context + custom SSR-safe localStorage store |
+| Icons | Material Symbols Outlined |
+| Data | No database — all demo state persists in browser localStorage |
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The app runs fully offline with seeded demo data. No backend is needed.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Deployment
 
-## Learn More
+This project is currently deployed on [Vercel](https://vercel.com), created with [Stitch](https://stitch.vercel.ai), and is live at:
 
-To learn more about Next.js, take a look at the following resources:
+**https://ecommerce-platform-web-peach.vercel.app/**
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+It runs fully client-side in demo mode — no backend services are required in production.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Environment Variables
 
-## Deploy on Vercel
+| Variable | Default | Description |
+|---|---|---|
+| `NEXT_PUBLIC_API_URL` | `http://localhost:8080` | Base URL for the external microservice gateway |
+| `NEXT_PUBLIC_ENABLE_DEMO_STATES` | `false` | Enable `?state=` URL param previews (error/loading/empty variants) |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Project Structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+  app/
+    (store)/         — Main storefront, account, auth pages
+    (checkout)/      — Checkout flow (minimal shell)
+    (seller)/        — Seller hub dashboard
+    (admin)/         — Admin console
+  components/        — ~65 components organized by domain (home, product, cart, checkout, etc.)
+  lib/
+    api/             — Typed API client for external microservices (catalog, search, cart, reviews, stock)
+    auth/            — Client-side JWT session management (access + refresh tokens)
+    demo/            — Offline demo data and info page content
+    utils/           — localStorage store, helpers
+```
+
+## License
+
+Private — portfolio demo project.
