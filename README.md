@@ -1,6 +1,42 @@
+<div align="center">
+
 # Atlas Marketplace
 
-A full-featured, dark-themed ecommerce storefront built with Next.js 16 and TypeScript. Designed as a demo/portfolio store that works against an external microservices backend — but ships with rich offline demo data so every flow works client-side with no backend required.
+**A full-featured, dark-themed ecommerce storefront** — built with Next.js 16 + TypeScript.
+Designed to run against an external microservices backend, but every flow works client-side
+out of the box with rich offline demo data.
+
+<br/>
+
+[![Live Demo](https://img.shields.io/badge/Live_Demo-ecommerce--platform--web--peach.vercel.app-000000?logo=vercel&logoColor=white&labelColor=111)](https://ecommerce-platform-web-peach.vercel.app/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white)](https://nextjs.org)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+</div>
+
+<!--
+  HERO SCREENSHOT
+  Drop a full-page screenshot of the storefront home page here:
+  public/screenshots/hero.png
+-->
+<!-- <img src="public/screenshots/hero.png" alt="Atlas Marketplace home page" width="100%" /> -->
+
+## Screenshots
+
+Screenshots are on the way — the slots below will be filled in with captures of the key flows.
+
+<!--
+  Add screenshots here when ready (public/screenshots/*.png):
+
+  <img src="public/screenshots/home.png"   alt="Home page"   width="48%" />
+  <img src="public/screenshots/search.png" alt="Search page" width="48%" />
+  <img src="public/screenshots/checkout.png"  alt="Checkout"    width="48%" />
+  <img src="public/screenshots/seller.png"    alt="Seller Hub"  width="48%" />
+  <img src="public/screenshots/invoice.png"   alt="Invoice"     width="48%" />
+-->
 
 ## Features
 
@@ -37,6 +73,14 @@ A full-featured, dark-themed ecommerce storefront built with Next.js 16 and Type
 ### Info Pages
 - About, FAQ, shipping, returns, contact, terms, privacy, become-a-seller
 
+## Live Demo
+
+Deployed on [Vercel](https://vercel.com) (created with [Stitch](https://stitch.vercel.ai)):
+
+> **https://ecommerce-platform-web-peach.vercel.app/**
+
+The demo runs fully client-side — no backend services are required in production.
+
 ## Tech Stack
 
 | Layer | Choice |
@@ -49,6 +93,22 @@ A full-featured, dark-themed ecommerce storefront built with Next.js 16 and Type
 | Icons | Material Symbols Outlined |
 | Data | No database — all demo state persists in browser localStorage |
 
+## Backend Microservices
+
+The frontend talks to an external, event-driven microservices backend behind an API gateway via a typed client in `src/lib/api/`. The app degrades gracefully to the offline demo catalogue when the gateway is unreachable.
+
+| Service | Endpoints |
+|---|---|
+| Auth | `POST /auth/login`, `POST /auth/register`, `POST /auth/refresh`, `POST /auth/logout` |
+| Catalog | `GET /categories`, `GET /brands` |
+| Products | `GET /products/{sku}` |
+| Search | `GET /search`, `GET /search/autocomplete` |
+| Stock | `GET /stock/{sku}` |
+| Cart | `GET /cart`, `POST /cart/items`, `PUT /cart/items/{sku}`, `DELETE /cart/items/{sku}` |
+| Reviews | `GET /reviews?productId=` |
+
+> Auth uses client-side JWT access + refresh tokens (localStorage). A cookie-based backend-for-frontend is recommended before a public launch — this is an acknowledged demo trade-off.
+
 ## Getting Started
 
 ```bash
@@ -59,14 +119,6 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000).
 
 The app runs fully offline with seeded demo data. No backend is needed.
-
-## Deployment
-
-This project is currently deployed on [Vercel](https://vercel.com), created with [Stitch](https://stitch.vercel.ai), and is live at:
-
-**https://ecommerce-platform-web-peach.vercel.app/**
-
-It runs fully client-side in demo mode — no backend services are required in production.
 
 ### Environment Variables
 
@@ -92,6 +144,10 @@ src/
     utils/           — localStorage store, helpers
 ```
 
+## Contributing
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
 ## License
 
-Private — portfolio demo project.
+[MIT](LICENSE) © ATUMANYIRE
