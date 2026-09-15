@@ -17,26 +17,17 @@ out of the box with rich offline demo data.
 
 </div>
 
-<!--
-  HERO SCREENSHOT
-  Drop a full-page screenshot of the storefront home page here:
-  public/screenshots/hero.png
--->
-<!-- <img src="public/screenshots/hero.png" alt="Atlas Marketplace home page" width="100%" /> -->
+<img src="public/screenshots/hero.png" alt="Atlas Marketplace home page" width="100%" />
 
 ## Screenshots
 
-Screenshots are on the way — the slots below will be filled in with captures of the key flows.
-
-<!--
-  Add screenshots here when ready (public/screenshots/*.png):
-
-  <img src="public/screenshots/home.png"   alt="Home page"   width="48%" />
-  <img src="public/screenshots/search.png" alt="Search page" width="48%" />
-  <img src="public/screenshots/checkout.png"  alt="Checkout"    width="48%" />
-  <img src="public/screenshots/seller.png"    alt="Seller Hub"  width="48%" />
-  <img src="public/screenshots/invoice.png"   alt="Invoice"     width="48%" />
--->
+<p align="center">
+  <img src="public/screenshots/shop.png" alt="Shop" width="49%" />
+  <img src="public/screenshots/deals.png" alt="Deals" width="49%" />
+  <img src="public/screenshots/cart.png" alt="Cart" width="49%" />
+  <img src="public/screenshots/wishlist.png" alt="Wishlist" width="49%" />
+  <img src="public/screenshots/account.png" alt="Account" width="49%" />
+</p>
 
 ## Features
 
